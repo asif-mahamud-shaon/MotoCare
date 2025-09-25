@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: motocare-postgres
+    environment:
+      POSTGRES_DB: motocare_db
+      POSTGRES_USER: motocare_user
+      POSTGRES_PASSWORD: motocare_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - motocare-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: motocare-backend
+    environment:
+      DATABASE_URL: postgresql://motocare_user:motocare_password@postgres:5432/motocare_db
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      PORT: 5000
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - motocare-network
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        npx prisma db seed &&
+        npm start
+      "
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: motocare-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - motocare-network
+
+volumes:
+  postgres_data:
+
+networks:
+  motocare-network:
+    driver: bridge

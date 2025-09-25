@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String
+  role        Role     @default(OWNER)
+  phone       String?
+  address     String?
+  businessName String? // For SHOP and VENDOR roles
+  businessType String? // For SHOP and VENDOR roles
+  licenseNumber String? // For SHOP and VENDOR roles
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cars        Car[]
+
+  @@map("users")
+}
+
+model Car {
+  id          String      @id @default(cuid())
+  brand       String
+  model       String
+  year        Int
+  condition   Condition
+  price       Float
+  description String?
+  images      String[]    // Array of image URLs
+  approved    Boolean     @default(false)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  gallery     Gallery[]
+
+  @@map("cars")
+}
+
+model Gallery {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  carId     String
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("gallery")
+}
+
+enum Role {
+  OWNER
+  SHOP
+  VENDOR
+  ADMIN
+}
+
+enum Condition {
+  NEW
+  RECONDITIONED
+  PRE_OWNED
+}
